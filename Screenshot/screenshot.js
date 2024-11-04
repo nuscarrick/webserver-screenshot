@@ -2,7 +2,7 @@
 ///                                                          ///
 ///  SCREENSHOT CLIENT SCRIPT FOR FM-DX-WEBSERVER (V1.0)     ///
 ///                                                          ///
-///  by Highpoint                last update: 03.11.24       ///
+///  by Highpoint                last update: 04.11.24       ///
 ///                                                          ///
 ///  https://github.com/Highpoint2000/webserver-screenshot   ///
 ///                                                          ///
@@ -11,6 +11,7 @@
 (() => {
     const plugin_version = 'V1.0';
     let wsSendSocket;
+    let pressTimer; // Timer für die Button-Press-Dauer
 
     const currentURL = new URL(window.location.href);
     const WebserverURL = currentURL.hostname;
@@ -33,8 +34,8 @@
             
             if (message.type === 'Screenshot' && message.value === 'saved') {
                 const link = document.createElement('a');
-                link.href = `${imageProtocol}//${WebserverURL}:${WebserverPORT}/images/screenshot.png`; // Use the received filename
-                link.download = message.name; // Use the received filename for download
+                link.href = `${imageProtocol}//${WebserverURL}:${WebserverPORT}/images/screenshot.png`;
+                link.download = message.name;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -53,7 +54,7 @@
 
         ScreenshotButton.addEventListener('click', () => {
             ws.send(JSON.stringify({ type: 'Screenshot', value: 'create' }));
-			sendToast('info', 'Screenshot', `is requested - please wait!`, false, false);
+            sendToast('info', 'Screenshot', `is requested - please wait!`, false, false);
         });
     });
 
@@ -105,6 +106,16 @@
             console.error('Standard location not found. Unable to add button.');
             return null;
         }
+    }
+
+    function startPressTimer() {
+        pressTimer = setTimeout(() => {
+            console.log('Button held down for too long');
+        }, 1000); // Setzt die Dauer für einen langen Tastendruck auf 1 Sekunde
+    }
+
+    function cancelPressTimer() {
+        clearTimeout(pressTimer); // Stoppt den Timer, wenn die Maus losgelassen wird oder den Button verlässt
     }
 
     setTimeout(initializeScreenshotButton, 1000);
