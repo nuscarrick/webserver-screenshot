@@ -2,10 +2,16 @@
 ///                                                          ///
 ///  SCREENSHOT SERVER SCRIPT FOR FM-DX-WEBSERVER (V1.0)     ///
 ///                                                          ///
-///  by Highpoint                last update: 03.11.24       ///
+///  by Highpoint                last update: 04.11.24       ///
 ///                                                          ///
 ///  https://github.com/Highpoint2000/webserver-screenshot   ///
 ///                                                          ///
+////////////////////////////////////////////////////////////////
+
+// Window size configuration
+const WINDOW_WIDTH = 1280; // Define your desired width, default is: 1280
+const WINDOW_HEIGHT = 1024; // Define your desired height, default is: 1024
+
 ////////////////////////////////////////////////////////////////
 
 const WebSocket = require('ws');
@@ -18,19 +24,20 @@ const externalWsUrl = `ws://127.0.0.1:${webserverPort}`;
 let TextSocket;
 let data_pluginsWs;
 
-// Variables for station information
-let frequency, picode, station, city, itu;
+// Import WebDriver from Selenium
+const { execSync } = require('child_process');
 
 // Function to check and install missing modules
-const { execSync } = require('child_process');
 const NewModules = [
-    'puppeteer',
+    'selenium-webdriver'
 ];
 
 function checkAndInstallNewModules() {
     NewModules.forEach(module => {
-        const modulePath = path.join(__dirname, './../../node_modules', module);
-        if (!fs.existsSync(modulePath)) {
+        try {
+            require.resolve(module); // Check if module is available
+        } catch (error) {
+            // If the module is not available, install it
             logInfo(`Module ${module} is missing. Installing...`);
             try {
                 execSync(`npm install ${module}`, { stdio: 'inherit' });
@@ -39,8 +46,6 @@ function checkAndInstallNewModules() {
                 logError(`Error installing module ${module}:`, error);
                 process.exit(1); // Exit the process with an error code
             }
-        } else {
-            // logInfo(`Module ${module} is already installed`);
         }
     });
 }
@@ -48,7 +53,12 @@ function checkAndInstallNewModules() {
 // Check and install modules before starting the server
 checkAndInstallNewModules();
 
-const puppeteer = require('puppeteer');
+// Now import the selenium-webdriver components
+const { Builder, By, until } = require('selenium-webdriver');
+const chrome = require('selenium-webdriver/chrome');
+
+// Variables for station information
+let frequency, picode, station, city, itu;
 
 // Setup TextSocket WebSocket connection
 async function setupTextSocket() {
@@ -113,8 +123,8 @@ function setupDataPluginsWebSocket() {
 
                 // Initialize the filename parts with the date and time
                 let filename = `${formattedDate}_${formattedTime}_${frequency}`;
-			
-				// Append each part only if it has a non-empty, non-whitespace value
+            
+                // Append each part only if it has a non-empty, non-whitespace value
                 if (picode && picode.trim()) filename += `_${picode}`;
                 if (station && station.trim()) filename += `_${station}`;
                 if (city && city.trim()) filename += `_${city}`;
@@ -139,38 +149,48 @@ function setupDataPluginsWebSocket() {
     });
 }
 
+// Capture screenshot using Selenium
 async function captureScreenshot() {
-    const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        ignoreHTTPSErrors: true
-    });
+    const options = new chrome.Options();
+    options.addArguments(
+        'headless',
+        'no-sandbox',
+        'disable-gpu',
+        `window-size=${WINDOW_WIDTH},${WINDOW_HEIGHT}`
+    );
+
+    const driver = new Builder()
+        .forBrowser('chrome')
+        .setChromeOptions(options)
+        .build();
 
     try {
-        const page = await browser.newPage();
-        await page.setViewport({ width: 1280, height: 800 });
+        // Load the page and wait until all resources are fully loaded
+        await driver.get(`http://127.0.0.1:${webserverPort}`);
 
-        // Wait for the page to load more thoroughly
-        await page.goto(`http://127.0.0.1:${webserverPort}`, { waitUntil: 'networkidle2' });
+        // Wait for a specific element that indicates the page is fully loaded
+        await driver.wait(until.elementLocated(By.css('body')), 10000); // waits for <body> tag
 
-        // Shorter delay of 1.5 seconds
-        await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 1500))); // waits for 1.5 seconds
+        // Additional 500 ms wait to ensure all elements have settled
+        await driver.sleep(1000);
 
+        // Define the path for saving the screenshot
         const screenshotsDir = path.resolve(__dirname, './../../web/images');
         if (!fs.existsSync(screenshotsDir)) {
             fs.mkdirSync(screenshotsDir, { recursive: true });
         }
 
         const screenshotPath = path.join(screenshotsDir, `screenshot.png`);
-        await page.screenshot({ path: screenshotPath, fullPage: true });
+        
+        // Take the screenshot and save it as a file
+        const image = await driver.takeScreenshot();
+        fs.writeFileSync(screenshotPath, image, 'base64');
 
         return screenshotPath;
     } finally {
-        await browser.close();
+        await driver.quit();
     }
 }
-
-
 
 // Start the WebSocket connections
 setupTextSocket();
