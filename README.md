@@ -18,3 +18,14 @@ This plugin generates screenshots of the web server.
 6. Stop or close the fm-dx-webserver
 7. Start/Restart the fm-dx-webserver with "npm run webserver" on node.js console, check the console informations
 
+## Configuration options:
+
+The following variables can be changed in the header of the screenshot_server.js:
+
+    WINDOW_WIDTH = 1280; 		// Define your desired width, default is: 1280
+    INDOW_HEIGHT = 1024; 		// Define your desired height, default is: 1024
+
+## Important notes:
+
+- The loading time of the screenshot depends on the number of elements (installed plugins)
+- Since the screenshot is created by reloading the web server on the server side, only the elements that are active when loading are displayed
