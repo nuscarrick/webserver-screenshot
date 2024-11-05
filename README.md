@@ -20,10 +20,11 @@ This plugin generates screenshots of the web server.
 
 ## Configuration options:
 
-The following variables can be changed in the header of the screenshot_server.js:
+The following variables can be changed in the header of the screenshot.js:
 
-    WINDOW_WIDTH = 1280; 		// Define your desired width, default is: 1280
-    INDOW_HEIGHT = 1024; 		// Define your desired height, default is: 1024
+    const defaultWidth = 1280;		// default is: 1280 
+    const defaultHeight = 920; 		// default is: 920 
+    const defaultTimeout = 1000; 	// default is: 1000 
 
 ## Important notes:
 
