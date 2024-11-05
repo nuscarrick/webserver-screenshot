@@ -10,7 +10,7 @@
 
 // Window size configuration
 const WINDOW_WIDTH = 1280; // Define your desired width
-const WINDOW_HEIGHT = 1024; // Define your desired height
+const WINDOW_HEIGHT = 920; // Define your desired height
 
 ////////////////////////////////////////////////////////////////
 
@@ -159,19 +159,20 @@ function setupDataPluginsWebSocket() {
     });
 }
 
-// Capture screenshot using Playwright
 async function captureScreenshot() {
     const browser = await chromium.launch({
         headless: true, // Set to false if you want to see the browser window
         args: [
             '--no-sandbox',
-            '--disable-gpu',
-            `--window-size=${WINDOW_WIDTH},${WINDOW_HEIGHT}`
+            '--disable-gpu'
         ]
     });
 
     const page = await browser.newPage();
-    
+
+    // Set the viewport size
+    await page.setViewportSize({ width: WINDOW_WIDTH, height: WINDOW_HEIGHT });
+
     try {
         // Load the page and wait until fully loaded
         await page.goto(`http://127.0.0.1:${webserverPort}`, { waitUntil: 'networkidle' });
@@ -195,6 +196,7 @@ async function captureScreenshot() {
         await browser.close();
     }
 }
+
 
 // Start the WebSocket connections
 setupTextSocket();
