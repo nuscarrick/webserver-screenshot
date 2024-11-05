@@ -22,8 +22,7 @@
     const serverAddress = 'http://89.58.28.164:8090';
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Initialize input fields and screenshot button
-        initializeScreenshotButton();
+        // Initialize input fields
         initializeParametersInput();
     });
 
@@ -146,5 +145,7 @@
                 alert(`Failed to capture screenshot. Error: ${error.message}. Please try again.`);
             });
     }
+
+	setTimeout(initializeScreenshotButton, 1000);
 
 })();
