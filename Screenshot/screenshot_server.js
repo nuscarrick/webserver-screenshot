@@ -1,16 +1,23 @@
 ////////////////////////////////////////////////////////////////
 ///                                                          ///
-// SCREENSHOT SERVER SCRIPT FOR FM-DX-WEBSERVER (V1.0)       ///
-//                                                           ///
-// by Highpoint                last update: 05.11.24         ///
-//                                                           ///
-// https://github.com/Highpoint2000/webserver-screenshot     ///
-//                                                           ///
+///  SCREENSHOT SERVER SCRIPT FOR FM-DX-WEBSERVER (V1.0)     ///
+///                                                          ///
+///  by Highpoint                last update: 05.11.24       ///
+///                                                          ///
+///  https://github.com/Highpoint2000/webserver-screenshot   ///
+///                                                          ///
+////////////////////////////////////////////////////////////////
+
+// Window size configuration
+const WINDOW_WIDTH = 1280; // Define your desired width
+const WINDOW_HEIGHT = 1024; // Define your desired height
+
 ////////////////////////////////////////////////////////////////
 
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 const { logInfo, logError } = require('./../../server/console');
 const config = require('./../../config.json');
 const webserverPort = config.webserver.webserverPort;
@@ -18,19 +25,17 @@ const externalWsUrl = `ws://127.0.0.1:${webserverPort}`;
 let TextSocket;
 let data_pluginsWs;
 
-// Variables for station information
-let frequency, picode, station, city, itu;
-
 // Function to check and install missing modules
-const { execSync } = require('child_process');
 const NewModules = [
-    'puppeteer',
+    'playwright'
 ];
 
 function checkAndInstallNewModules() {
     NewModules.forEach(module => {
-        const modulePath = path.join(__dirname, './../../node_modules', module);
-        if (!fs.existsSync(modulePath)) {
+        try {
+            require.resolve(module); // Check if module is available
+        } catch (error) {
+            // If the module is not available, install it
             logInfo(`Module ${module} is missing. Installing...`);
             try {
                 execSync(`npm install ${module}`, { stdio: 'inherit' });
@@ -43,10 +48,27 @@ function checkAndInstallNewModules() {
     });
 }
 
-// Check and install modules before starting the server
-checkAndInstallNewModules();
+// Function to install Playwright browsers
+function installPlaywrightBrowsers() {
+    logInfo("Installing Playwright browsers...");
+    try {
+        execSync('npx playwright install', { stdio: 'inherit' });
+        logInfo("Playwright browsers installed successfully.");
+    } catch (error) {
+        logError("Error installing Playwright browsers:", error);
+        process.exit(1); // Exit the process with an error code
+    }
+}
 
-const puppeteer = require('puppeteer');
+// Check and install modules and browsers before starting the server
+checkAndInstallNewModules();
+installPlaywrightBrowsers();
+
+// Import Playwright after installation
+const { chromium } = require('playwright');
+
+// Variables for station information
+let frequency, picode, station, city, itu;
 
 // Setup TextSocket WebSocket connection
 async function setupTextSocket() {
@@ -111,8 +133,8 @@ function setupDataPluginsWebSocket() {
 
                 // Initialize the filename parts with the date and time
                 let filename = `${formattedDate}_${formattedTime}_${frequency}`;
-			
-				// Append each part only if it has a non-empty, non-whitespace value
+            
+                // Append each part only if it has a non-empty, non-whitespace value
                 if (picode && picode.trim()) filename += `_${picode}`;
                 if (station && station.trim()) filename += `_${station}`;
                 if (city && city.trim()) filename += `_${city}`;
@@ -120,7 +142,7 @@ function setupDataPluginsWebSocket() {
 
                 // Add the file extension
                 filename += `.png`;
-
+                
                 logInfo(`Screenshot created: ${filename}`);
                 data_pluginsWs.send(JSON.stringify({ type: 'Screenshot', value: 'saved', name: filename }));
             }
@@ -137,45 +159,40 @@ function setupDataPluginsWebSocket() {
     });
 }
 
+// Capture screenshot using Playwright
 async function captureScreenshot() {
-    // Launch Puppeteer in headless mode
-    const browser = await puppeteer.launch({
-        headless: true, // Run in headless mode
+    const browser = await chromium.launch({
+        headless: true, // Set to false if you want to see the browser window
         args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox', 
-            '--disable-dev-shm-usage', // Overcome limited resource problems
-            '--disable-gpu', // Applicable for certain environments
-            '--window-size=1280,800' // Set a default window size
-        ],
-        ignoreHTTPSErrors: true // Ignore HTTPS errors for local development
+            '--no-sandbox',
+            '--disable-gpu',
+            `--window-size=${WINDOW_WIDTH},${WINDOW_HEIGHT}`
+        ]
     });
 
+    const page = await browser.newPage();
+    
     try {
-        const page = await browser.newPage();
-        await page.setViewport({ width: 1280, height: 800 }); // Set viewport size
+        // Load the page and wait until fully loaded
+        await page.goto(`http://127.0.0.1:${webserverPort}`, { waitUntil: 'networkidle' });
 
-        // Navigate to the web server URL
-        await page.goto(`http://127.0.0.1:${webserverPort}`, { waitUntil: 'networkidle2' });
+        // Wait for an additional second before taking the screenshot
+        await page.waitForTimeout(1000); // Wait for 1 second
 
-        // Short delay to ensure the page has loaded fully
-        await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 1500))); // waits for 1.5 seconds
-
-        // Prepare the directory for saving screenshots
+        // Define the path for saving the screenshot
         const screenshotsDir = path.resolve(__dirname, './../../web/images');
         if (!fs.existsSync(screenshotsDir)) {
-            fs.mkdirSync(screenshotsDir, { recursive: true }); // Create the directory if it doesn't exist
+            fs.mkdirSync(screenshotsDir, { recursive: true });
         }
 
-        // Generate the screenshot file path
         const screenshotPath = path.join(screenshotsDir, `screenshot.png`);
         
-        // Take the screenshot and save it
-        await page.screenshot({ path: screenshotPath, fullPage: true });
-
-        return screenshotPath; // Return the path of the saved screenshot
+        // Take the screenshot and save it as a file
+        await page.screenshot({ path: screenshotPath });
+        
+        return screenshotPath;
     } finally {
-        await browser.close(); // Ensure the browser closes after screenshot capture
+        await browser.close();
     }
 }
 
