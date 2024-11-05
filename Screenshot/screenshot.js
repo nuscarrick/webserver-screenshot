@@ -146,6 +146,6 @@
             });
     }
 
-	setTimeout(initializeScreenshotButton, 1000);
+	setTimeout(initializeScreenshotButton, 1000); 
 
 })();
