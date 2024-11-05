@@ -2,7 +2,7 @@
 ///                                                          ///
 ///  SCREENSHOT CLIENT SCRIPT FOR FM-DX-WEBSERVER (V1.0)     ///
 ///                                                          ///
-///  by Highpoint                last update: 04.11.24       ///
+///  by Highpoint                last update: 05.11.24       ///
 ///                                                          ///
 ///  https://github.com/Highpoint2000/webserver-screenshot   ///
 ///                                                          ///
