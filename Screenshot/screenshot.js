@@ -9,10 +9,14 @@
 ////////////////////////////////////////////////////////////////
 
 (() => {
-    const plugin_version = 'V1.0';
-    const defaultWidth = 1280;
-    const defaultHeight = 920;
-    const defaultTimeout = 1000; // Set timeout to 1000 milliseconds
+
+    const defaultWidth = 1280;		// default 1280 
+    const defaultHeight = 920; 		// default 920 
+    const defaultTimeout = 1000; 	// default 1000 
+	
+////////////////////////////////////////////////////////////////	
+	
+	const plugin_version = 'V1.0';
 
     // Fixed server address
     const serverAddress = 'http://89.58.28.164:8090';
