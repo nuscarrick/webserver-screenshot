@@ -8,6 +8,10 @@ This plugin generates screenshots of the web server.
 
 ## Version 1.0
 
+- https and local network support
+- PNG filename with metadata
+- External server creates the snapshots (all plattforms are supported!)
+
 ## Installation notes:
 
 1. [Download](https://github.com/Highpoint2000/webserver-screenshot/releases) the last repository as a zip
