@@ -74,21 +74,22 @@ async function handleScreenshotRequest() {
     storedCity = city;
     storedStation = station;
 
-    // Verwende die externe IP-Adresse nur, wenn kein Domainname verwendet wird
+    // Verwende die externe IP-Adresse nur bei bestimmten lokalen IPs
     const currentUrl = window.location.href;
     const urlObj = new URL(currentUrl);
     const hostname = urlObj.hostname;
-    
+
     let url;
 
-    // Prüfen, ob der Hostname eine IP-Adresse ist (lokal oder extern)
-    const isLocalIP = hostname.match(/^(127\.0\.0\.1|::1|localhost)$/) || hostname.match(/^\d{1,3}(\.\d{1,3}){3}$/);
+    // Prüfen, ob der Hostname eine IP-Adresse ist
+    const isLocalIP = hostname.match(/^(127\.0\.0\.1|::1|localhost)$/) || 
+                      hostname.match(/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1]))/);
     
     if (hostname !== 'localhost' && !isLocalIP) {
-        // Wenn ein Domainname vorhanden ist, verwende diesen
+        // Wenn ein Domainname oder eine öffentliche IP vorhanden ist, verwende diesen
         url = currentUrl;
     } else {
-        // Wenn es sich um eine lokale IP handelt oder localhost ist, hole die externe IP
+        // Wenn es sich um eine lokale IP im angegebenen Bereich handelt, hole die externe IP
         const externalIP = await getExternalIP();
         const protocol = urlObj.protocol;
         const port = urlObj.port || (protocol === 'http:' ? '80' : '443'); // Standardport setzen
@@ -110,7 +111,6 @@ async function getExternalIP() {
         })
         .then(data => data.ip); // Gibt die externe IP zurück
 }
-
 
 
     function requestScreenshot(url, width, height, timeout) {
