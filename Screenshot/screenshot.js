@@ -74,31 +74,32 @@ async function handleScreenshotRequest() {
     storedCity = city;
     storedStation = station;
 
-    // Verwende die externe IP-Adresse nur, wenn kein Domainname verwendet wird
+    // Get the current URL and hostname
     const currentUrl = window.location.href;
     const urlObj = new URL(currentUrl);
     const hostname = urlObj.hostname;
-    
+
     let url;
 
-    // Prüfen, ob der Hostname eine IP-Adresse ist (lokal oder extern)
-    const isLocalIP = hostname.match(/^(127\.0\.0\.1|::1|localhost)$/) || hostname.match(/^\d{1,3}(\.\d{1,3}){3}$/);
-    
-    if (hostname !== 'localhost' && !isLocalIP) {
-        // Wenn ein Domainname vorhanden ist, verwende diesen
+    // Check if the hostname is a local IP (127.x.x.x, 192.x.x.x, 10.x.x.x) or localhost
+    const isLocalIP = hostname.match(/^(127\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.\d{1,3}\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|::1|localhost)$/);
+
+    if (!isLocalIP) {
+        // If hostname is not a local IP, use the current hostname
         url = currentUrl;
     } else {
-        // Wenn es sich um eine lokale IP handelt oder localhost ist, hole die externe IP
+        // If it's a local IP or localhost, retrieve the external IP
         const externalIP = await getExternalIP();
         const protocol = urlObj.protocol;
-        const port = urlObj.port || (protocol === 'http:' ? '80' : '443'); // Standardport setzen
+        const port = urlObj.port || (protocol === 'http:' ? '80' : '443'); // Set default port based on protocol
 
-        url = `${protocol}//${externalIP}:${port}`; // Baue die URL mit der externen IP
+        url = `${protocol}//${externalIP}:${port}`; // Build the URL with the external IP
     }
 
     sendToast('info important', 'Screenshot', `is requested - please wait!`, false, false);
-    requestScreenshot(url, Width, Height, Timeout); // Verwende die neue URL
+    requestScreenshot(url, Width, Height, Timeout); // Use the new URL
 }
+
 
 async function getExternalIP() {
     return fetch('https://api.ipify.org?format=json')
