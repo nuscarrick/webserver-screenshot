@@ -6,11 +6,10 @@ This plugin generates screenshots of the web server.
 
 
 
-## Version 1.0
+## Version 1.1 (only works from web server version 1.3.5!!!)
 
-- https and local network support
-- PNG filename with metadata
-- External server creates the snapshots (all plattforms are supported!)
+- Design adjustments for web server version 1.3.5
+
 
 ## Installation notes:
 
@@ -34,3 +33,11 @@ The following variables can be changed in the header of the screenshot.js:
 
 - The loading time of the screenshot depends on the number of elements (installed plugins)
 - Since the screenshot is created by reloading the web server on the server side, only the elements that are active when loading are displayed
+
+## History
+
+### Version 1.0
+
+- https and local network support
+- PNG filename with metadata
+- External server creates the snapshots (all plattforms are supported!)
