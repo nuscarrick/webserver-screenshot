@@ -1,124 +1,82 @@
 (() => {
     ////////////////////////////////////////////////////////////////////////
     ///                                                                    ///
-    ///  SCREENSHOT CLIENT SCRIPT FOR FM-DX-WEBSERVER (V1.0)               ///
+    ///  SCREENSHOT CLIENT SCRIPT FOR FM-DX-WEBSERVER (V1.1)               ///
     ///                                                                    ///
-    ///  by Highpoint                last update: 05.11.24                 ///
+    ///  by Highpoint                last update: 17.02.25                 ///
     ///                                                                    ///
     ///  https://github.com/Highpoint2000/webserver-screenshot             ///
     ///                                                                    ///
     ////////////////////////////////////////////////////////////////////////
+	
+	///  This plugin only works from web server version 1.3.5 !!!
 
-    const Width = 1280;		// default width
-    const Height = 920; 	// default height
-    const Timeout = 1000; 	// default timeout
+    const Width = 1280;        // default width
+    const Height = 920;        // default height
+    const Timeout = 1500;      // default timeout
 
     ////////////////////////////////////////////////////////////////////////
-    
-    const plugin_version = 'V1.0';
+
+    const plugin_version = 'V1.1';
     const corsAnywhereUrl = 'https://cors-proxy.de:13128/';
     const serverPort = '8090';
     let websocket;
-	let picode = '', freq = '', itu = '', city = '', station = '';
-    let storedPicode = '', storedFreq = '', storedITU = '', storedCity = '', storedStation = ''; // Store for screenshot
+    let picode = '', freq = '', itu = '', city = '', station = '';
+    let storedPicode = '', storedFreq = '', storedITU = '', storedCity = '', storedStation = ''; // Values stored for the screenshot filename
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Initialize input fields
-        setupWebSocket(); // Set up WebSocket connection
+        setupWebSocket(); // Set up the WebSocket connection
     });
 
-    const ScreenshotButton = document.createElement('button');
+    async function handleScreenshotRequest() {
+        // Store current values for the filename
+        storedPicode = picode;
+        storedFreq = freq;
+        storedITU = itu;
+        storedCity = city;
+        storedStation = station;
 
-    function initializeScreenshotButton() {
-        const buttonWrapper = document.getElementById('button-wrapper') || createDefaultButtonWrapper();
+        // Get the current URL and hostname
+        const currentUrl = window.location.href;
+        const urlObj = new URL(currentUrl);
+        const hostname = urlObj.hostname;
 
-        if (buttonWrapper) {
-            ScreenshotButton.id = 'Screenshot';
-            ScreenshotButton.classList.add('hide-phone');
-            ScreenshotButton.setAttribute('data-tooltip', 'Request screenshot');
-            ScreenshotButton.innerHTML = '<strong>SCREENSHOT</strong>';
-            ScreenshotButton.style.marginTop = '16px';
-            ScreenshotButton.style.marginLeft = '5px';
-            ScreenshotButton.style.width = '100px';
-            ScreenshotButton.classList.add('bg-color-2');
-            ScreenshotButton.style.borderRadius = '0px';
-            ScreenshotButton.title = `Plugin Version: ${plugin_version}`;
-            buttonWrapper.appendChild(ScreenshotButton);
-            ScreenshotButton.addEventListener('click', handleScreenshotRequest); // Add click event listener
-            console.log('Screenshot button successfully added.');
+        let url;
+
+        // Check if the hostname is a local IP (127.x.x.x, 192.x.x.x, 10.x.x.x) or localhost
+        const isLocalIP = hostname.match(/^(127\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.\d{1,3}\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|::1|localhost)$/);
+
+        if (!isLocalIP) {
+            // For an external hostname, use the current URL
+            url = currentUrl;
         } else {
-            console.error('Unable to add button.');
+            // For a local IP or localhost, retrieve the external IP
+            const externalIP = await getExternalIP();
+            const protocol = urlObj.protocol;
+            const port = urlObj.port || (protocol === 'http:' ? '80' : '443'); // Default port based on the protocol
+
+            url = `${protocol}//${externalIP}:${port}`; // Build the URL using the external IP
         }
+
+        sendToast('info important', 'Screenshot', `is requested - please wait!`, false, false);
+        requestScreenshot(url, Width, Height, Timeout);
     }
 
-    function createDefaultButtonWrapper() {
-        const wrapperElement = document.querySelector('.tuner-info');
-        if (wrapperElement) {
-            const buttonWrapper = document.createElement('div');
-            buttonWrapper.classList.add('button-wrapper');
-            buttonWrapper.id = 'button-wrapper';
-            wrapperElement.appendChild(buttonWrapper);
-            wrapperElement.appendChild(document.createElement('br'));
-            return buttonWrapper;
-        } else {
-            console.error('Standard location not found. Unable to add button.');
-            return null;
-        }
+    async function getExternalIP() {
+        return fetch('https://api.ipify.org?format=json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => data.ip);
     }
-
-async function handleScreenshotRequest() {
-    // Store the current values for the screenshot filename
-    storedPicode = picode;
-    storedFreq = freq;
-    storedITU = itu;
-    storedCity = city;
-    storedStation = station;
-
-    // Get the current URL and hostname
-    const currentUrl = window.location.href;
-    const urlObj = new URL(currentUrl);
-    const hostname = urlObj.hostname;
-
-    let url;
-
-    // Check if the hostname is a local IP (127.x.x.x, 192.x.x.x, 10.x.x.x) or localhost
-    const isLocalIP = hostname.match(/^(127\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.\d{1,3}\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|::1|localhost)$/);
-
-    if (!isLocalIP) {
-        // If hostname is not a local IP, use the current hostname
-        url = currentUrl;
-    } else {
-        // If it's a local IP or localhost, retrieve the external IP
-        const externalIP = await getExternalIP();
-        const protocol = urlObj.protocol;
-        const port = urlObj.port || (protocol === 'http:' ? '80' : '443'); // Set default port based on protocol
-
-        url = `${protocol}//${externalIP}:${port}`; // Build the URL with the external IP
-    }
-
-    sendToast('info important', 'Screenshot', `is requested - please wait!`, false, false);
-    requestScreenshot(url, Width, Height, Timeout); // Use the new URL
-}
-
-
-async function getExternalIP() {
-    return fetch('https://api.ipify.org?format=json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => data.ip); // Gibt die externe IP zurück
-}
-
-
 
     function requestScreenshot(url, width, height, timeout) {
-        const encodedUrl = encodeURIComponent(url); // Encode the current page URL
+        const encodedUrl = encodeURIComponent(url);
         const requestUrl = `${corsAnywhereUrl}http://127.0.0.1:${serverPort}/screenshot?url=${encodedUrl}&width=${width}&height=${height}&timeout=${timeout}`;
 
-        // Log the constructed request URL for debugging
         console.log(`Request URL: ${requestUrl}`);
 
         fetch(requestUrl)
@@ -126,15 +84,13 @@ async function getExternalIP() {
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-                return response.blob(); // Get the image as a Blob
+                return response.blob();
             })
             .then(blob => {
-                // Generate filename based on the specified format
                 const date = new Date();
                 const dateString = date.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-                const timeString = date.toTimeString().slice(0, 8).replace(/:/g, ''); // HHMMSS
+                const timeString = date.toTimeString().slice(0, 8).replace(/:/g, '');  // HHMMSS
 
-                // Build the filename conditionally using stored values
                 const parts = [dateString, timeString];
 
                 if (storedFreq) parts.push(storedFreq);
@@ -143,19 +99,16 @@ async function getExternalIP() {
                 if (storedCity) parts.push(storedCity);
                 if (storedITU) parts.push(`[${storedITU}]`);
 
-                const filename = parts.filter(Boolean).join('_') + '.png'; // Filter out empty values and join parts with underscore
+                const filename = parts.filter(Boolean).join('_') + '.png';
 
-                // Create a link element for download
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = filename; // Name of the downloaded file
+                link.download = filename;
 
-                // Programmatically click the link to trigger the download
                 document.body.appendChild(link);
                 link.click();
-                document.body.removeChild(link); // Remove the link from the document
+                document.body.removeChild(link);
 
-                // Clean up the URL object
                 URL.revokeObjectURL(link.href);
             })
             .catch(error => {
@@ -166,18 +119,17 @@ async function getExternalIP() {
 
     async function handleWebSocketMessage(event) {
         try {
-            const data = JSON.parse(event.data); // Parse the incoming WebSocket message
-            picode = (data.pi || '').replace(/\?/g, ''); // Extract pi code from data, removing '?'
-            freq = (data.freq || '').replace(/\?/g, ''); // Extract frequency from data, removing '?'
-            itu = (data.txInfo.itu || '').replace(/\?/g, ''); // Extract ITU information, removing '?'
-            city = (data.txInfo.city || '').replace(/\?/g, ''); // Extract city from transmission info, removing '?'
-            station = (data.txInfo.tx || '').replace(/\?/g, ''); // Extract station from transmission info, removing '?'
+            const data = JSON.parse(event.data);
+            picode = (data.pi || '').replace(/\?/g, '');
+            freq = (data.freq || '').replace(/\?/g, '');
+            itu = (data.txInfo.itu || '').replace(/\?/g, '');
+            city = (data.txInfo.city || '').replace(/\?/g, '');
+            station = (data.txInfo.tx || '').replace(/\?/g, '');
         } catch (error) {
-            console.error("Error processing the message:", error); // Log any errors that occur
+            console.error("Error processing the message:", error);
         }
-    }	
-	
-    // WebSocket setup function
+    }
+
     async function setupWebSocket() {
         if (!websocket || websocket.readyState === WebSocket.CLOSED) {
             try {
@@ -204,6 +156,72 @@ async function getExternalIP() {
         }
     }
 
-    setTimeout(initializeScreenshotButton, 1000);
+    // Remove the old initializeScreenshotButton function and replace it with the new button
 
+    // Functions for long-press detection
+    let pressTimer;
+    function startPressTimer(e) {
+        // Start a timer for a long press (e.g., 1 second)
+        pressTimer = setTimeout(() => {
+            handleScreenshotRequest();
+        }, 1000);
+    }
+
+    function cancelPressTimer(e) {
+        clearTimeout(pressTimer);
+    }
+
+    // ───────────────────────────────────────────────────────────────
+    // New button: creation and assignment of event listeners
+    function createButton(buttonId) {
+      (function waitForFunction() {
+        const maxWaitTime = 10000;
+        let functionFound = false;
+
+        const observer = new MutationObserver((mutationsList, observer) => {
+          if (typeof addIconToPluginPanel === 'function') {
+            observer.disconnect();
+            // Create the button using the plugin panel
+            addIconToPluginPanel(buttonId, "Screenshot", "solid", "print", `Plugin Version: ${plugin_version}`);
+            functionFound = true;
+
+            const buttonObserver = new MutationObserver(() => {
+              const $pluginButton = $(`#${buttonId}`);
+              if ($pluginButton.length > 0) {
+                // Add event listeners for long press
+                $pluginButton.on('mousedown', startPressTimer);
+                $pluginButton.on('mouseup mouseleave', cancelPressTimer);
+                // Remove any separate click handler to avoid conflicts with the long-press logic
+                buttonObserver.disconnect();
+              }
+            });
+            buttonObserver.observe(document.body, { childList: true, subtree: true });
+          }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        setTimeout(() => {
+          observer.disconnect();
+          if (!functionFound) {
+            console.error(`Function addIconToPluginPanel not found after ${maxWaitTime / 1000} seconds.`);
+          }
+        }, maxWaitTime);
+      })();
+
+      // Additional CSS adjustments for the new button
+      const aScreenshotCss = `
+        #${buttonId}:hover {
+          color: var(--color-5);
+          filter: brightness(120%);
+        }
+      `;
+      $("<style>")
+        .prop("type", "text/css")
+        .html(aScreenshotCss)
+        .appendTo("head");
+    }
+
+    // Create the button with the ID 'Screenshot'
+    createButton('Screenshot');
 })();
