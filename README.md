@@ -31,6 +31,7 @@ The following variables can be changed in the header of the screenshot.js:
 
 ## Important notes:
 
+- The plugin only works for publicly accessible web servers!!!
 - The loading time of the screenshot depends on the number of elements (installed plugins)
 - Since the screenshot is created by reloading the web server on the server side, only the elements that are active when loading are displayed
 
