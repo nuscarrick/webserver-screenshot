@@ -6,9 +6,9 @@ This plugin generates screenshots of the web server.
 
 
 
-## Version 1.1 (only works from web server version 1.3.5!!!)
+## Version 1.2 (only works from web server version 1.3.5!!!)
 
-- Design adjustments for web server version 1.3.5
+- Screenshot button now works again with a short press
 
 
 ## Installation notes:
@@ -36,6 +36,10 @@ The following variables can be changed in the header of the screenshot.js:
 - Since the screenshot is created by reloading the web server on the server side, only the elements that are active when loading are displayed
 
 ## History
+
+### Version 1.1 (only works from web server version 1.3.5!!!)
+
+- Design adjustments for web server version 1.3.5
 
 ### Version 1.0
 
