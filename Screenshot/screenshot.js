@@ -1,12 +1,12 @@
 (() => {
     ////////////////////////////////////////////////////////////////////////
-    ///                                                                    ///
-    ///  SCREENSHOT CLIENT SCRIPT FOR FM-DX-WEBSERVER (V1.1)               ///
-    ///                                                                    ///
-    ///  by Highpoint                last update: 17.02.25                 ///
-    ///                                                                    ///
-    ///  https://github.com/Highpoint2000/webserver-screenshot             ///
-    ///                                                                    ///
+    ///                                                                  ///
+    ///  SCREENSHOT CLIENT SCRIPT FOR FM-DX-WEBSERVER (V1.2)             ///
+    ///                                                                  ///
+    ///  by Highpoint                last update: 17.02.25               ///
+    ///                                                                  ///
+    ///  https://github.com/Highpoint2000/webserver-screensho            ///
+    ///                                                                  ///
     ////////////////////////////////////////////////////////////////////////
 	
 	///  This plugin only works from web server version 1.3.5 !!!
@@ -17,7 +17,7 @@
 
     ////////////////////////////////////////////////////////////////////////
 
-    const plugin_version = 'V1.1';
+    const plugin_version = 'V1.2';
     const corsAnywhereUrl = 'https://cors-proxy.de:13128/';
     const serverPort = '8090';
     let websocket;
@@ -156,21 +156,6 @@
         }
     }
 
-    // Remove the old initializeScreenshotButton function and replace it with the new button
-
-    // Functions for long-press detection
-    let pressTimer;
-    function startPressTimer(e) {
-        // Start a timer for a long press (e.g., 1 second)
-        pressTimer = setTimeout(() => {
-            handleScreenshotRequest();
-        }, 1000);
-    }
-
-    function cancelPressTimer(e) {
-        clearTimeout(pressTimer);
-    }
-
     // ───────────────────────────────────────────────────────────────
     // New button: creation and assignment of event listeners
     function createButton(buttonId) {
@@ -188,10 +173,8 @@
             const buttonObserver = new MutationObserver(() => {
               const $pluginButton = $(`#${buttonId}`);
               if ($pluginButton.length > 0) {
-                // Add event listeners for long press
-                $pluginButton.on('mousedown', startPressTimer);
-                $pluginButton.on('mouseup mouseleave', cancelPressTimer);
-                // Remove any separate click handler to avoid conflicts with the long-press logic
+                // Statt langer Druckdauer wird nun ein einfacher Klick verwendet:
+                $pluginButton.on('click', handleScreenshotRequest);
                 buttonObserver.disconnect();
               }
             });
