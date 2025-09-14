@@ -10,111 +10,42 @@
     ////////////////////////////////////////////////////////////////////////
 	
 	///  This plugin only works from web server version 1.3.5 !!!
-
-    const Width = 1280;        // default width
-    const Height = 920;        // default height
-    const Timeout = 1500;      // default timeout
-
     ////////////////////////////////////////////////////////////////////////
 
     const plugin_version = 'V1.2';
-    const corsAnywhereUrl = 'https://cors-proxy.de:13128/';
-    const serverPort = '8090';
     let websocket;
     let picode = '', freq = '', itu = '', city = '', station = '';
-    let storedPicode = '', storedFreq = '', storedITU = '', storedCity = '', storedStation = ''; // Values stored for the screenshot filename
 
     document.addEventListener('DOMContentLoaded', () => {
         setupWebSocket(); // Set up the WebSocket connection
     });
+    
+    const html2canvasScript = document.createElement('script');
+    html2canvasScript.src = 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.11/dist/html2canvas-pro.min.js';
+    document.body.appendChild(html2canvasScript);
 
     async function handleScreenshotRequest() {
-        // Store current values for the filename
-        storedPicode = picode;
-        storedFreq = freq;
-        storedITU = itu;
-        storedCity = city;
-        storedStation = station;
+        const date = new Date();
+        const dateString = date.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+        const timeString = date.toTimeString().slice(0, 8).replace(/:/g, '');  // HHMMSS
 
-        // Get the current URL and hostname
-        const currentUrl = window.location.href;
-        const urlObj = new URL(currentUrl);
-        const hostname = urlObj.hostname;
+        const parts = [dateString, timeString];
+        if (freq) parts.push(freq);
+        if (picode) parts.push(picode);
+        if (station) parts.push(station);
+        if (city) parts.push(city);
+        if (itu) parts.push(`[${itu}]`);
 
-        let url;
-
-        // Check if the hostname is a local IP (127.x.x.x, 192.x.x.x, 10.x.x.x) or localhost
-        const isLocalIP = hostname.match(/^(127\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.\d{1,3}\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|::1|localhost)$/);
-
-        if (!isLocalIP) {
-            // For an external hostname, use the current URL
-            url = currentUrl;
-        } else {
-            // For a local IP or localhost, retrieve the external IP
-            const externalIP = await getExternalIP();
-            const protocol = urlObj.protocol;
-            const port = urlObj.port || (protocol === 'http:' ? '80' : '443'); // Default port based on the protocol
-
-            url = `${protocol}//${externalIP}:${port}`; // Build the URL using the external IP
-        }
-
-        sendToast('info important', 'Screenshot', `is requested - please wait!`, false, false);
-        requestScreenshot(url, Width, Height, Timeout);
-    }
-
-    async function getExternalIP() {
-        return fetch('https://api.ipify.org?format=json')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => data.ip);
-    }
-
-    function requestScreenshot(url, width, height, timeout) {
-        const encodedUrl = encodeURIComponent(url);
-        const requestUrl = `${corsAnywhereUrl}http://127.0.0.1:${serverPort}/screenshot?url=${encodedUrl}&width=${width}&height=${height}&timeout=${timeout}`;
-
-        console.log(`Request URL: ${requestUrl}`);
-
-        fetch(requestUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.blob();
-            })
-            .then(blob => {
-                const date = new Date();
-                const dateString = date.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-                const timeString = date.toTimeString().slice(0, 8).replace(/:/g, '');  // HHMMSS
-
-                const parts = [dateString, timeString];
-
-                if (storedFreq) parts.push(storedFreq);
-                if (storedPicode) parts.push(storedPicode);
-                if (storedStation) parts.push(storedStation);
-                if (storedCity) parts.push(storedCity);
-                if (storedITU) parts.push(`[${storedITU}]`);
-
-                const filename = parts.filter(Boolean).join('_') + '.png';
-
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = filename;
-
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                URL.revokeObjectURL(link.href);
-            })
-            .catch(error => {
-                console.error('Error requesting screenshot:', error);
-                sendToast('error important', 'Screenshot', `Error: ${error.message}. Please try again.`);
-            });
+        const filename = parts.filter(Boolean).join('_') + '.png';
+        $(".tooltip-wrapper").remove();
+        html2canvas(document.body).then(canvas => {
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = filename;
+            link.click();
+        });
+        return;
     }
 
     async function handleWebSocketMessage(event) {
