@@ -33,7 +33,7 @@
       if (itu) parts.push(`[${itu}]`);
 
       const filename = parts.filter(Boolean).join('_') + '.png';
-      fetch('http://screenshot.fmscan.com:4000/take-screenshot', {
+      fetch('https://screenshot.fmscan.com/take-screenshot', {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
