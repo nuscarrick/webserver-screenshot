@@ -1,141 +1,159 @@
 (() => {
-    ////////////////////////////////////////////////////////////////////////
-    ///                                                                  ///
-    ///  SCREENSHOT CLIENT SCRIPT FOR FM-DX-WEBSERVER (V1.2)             ///
-    ///                                                                  ///
-    ///  by Highpoint                last update: 17.02.25               ///
-    ///                                                                  ///
-    ///  https://github.com/Highpoint2000/webserver-screensho            ///
-    ///                                                                  ///
-    ////////////////////////////////////////////////////////////////////////
-	
-	///  This plugin only works from web server version 1.3.5 !!!
-    ////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////
+  ///                                                                  ///
+  ///  SCREENSHOT CLIENT SCRIPT FOR FM-DX-WEBSERVER (V1.2)             ///
+  ///                                                                  ///
+  ///  by Highpoint                last update: 17.02.25               ///
+  ///                                                                  ///
+  ///  https://github.com/Highpoint2000/webserver-screensho            ///
+  ///                                                                  ///
+  ////////////////////////////////////////////////////////////////////////
 
-    const plugin_version = 'V1.2';
-    let websocket;
-    let picode = '', freq = '', itu = '', city = '', station = '';
+///  This plugin only works from web server version 1.3.5 !!!
+  ////////////////////////////////////////////////////////////////////////
 
-    document.addEventListener('DOMContentLoaded', () => {
-        setupWebSocket(); // Set up the WebSocket connection
-    });
-    
-    const html2canvasScript = document.createElement('script');
-    html2canvasScript.src = 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.11/dist/html2canvas-pro.min.js';
-    document.body.appendChild(html2canvasScript);
+  const plugin_version = 'V1.2';
+  let websocket;
+  let picode = '', freq = '', itu = '', city = '', station = '';
 
-    async function handleScreenshotRequest() {
-        const date = new Date();
-        const dateString = date.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-        const timeString = date.toTimeString().slice(0, 8).replace(/:/g, '');  // HHMMSS
+  document.addEventListener('DOMContentLoaded', () => {
+      setupWebSocket(); // Set up the WebSocket connection
+  });
 
-        const parts = [dateString, timeString];
-        if (freq) parts.push(freq);
-        if (picode) parts.push(picode);
-        if (station) parts.push(station);
-        if (city) parts.push(city);
-        if (itu) parts.push(`[${itu}]`);
+  async function handleScreenshotRequest() {
+      const date = new Date();
+      const dateString = date.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+      const timeString = date.toTimeString().slice(0, 8).replace(/:/g, '');  // HHMMSS
 
-        const filename = parts.filter(Boolean).join('_') + '.png';
-        $(".tooltip-wrapper").remove();
-        html2canvas(document.body).then(canvas => {
-            const dataURL = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.href = dataURL;
-            link.download = filename;
-            link.click();
-        });
-        return;
-    }
+      const parts = [dateString, timeString];
+      if (freq) parts.push(freq);
+      if (picode) parts.push(picode);
+      if (station) parts.push(station);
+      if (city) parts.push(city);
+      if (itu) parts.push(`[${itu}]`);
 
-    async function handleWebSocketMessage(event) {
-        try {
-            const data = JSON.parse(event.data);
-            picode = (data.pi || '').replace(/\?/g, '');
-            freq = (data.freq || '').replace(/\?/g, '');
-            itu = (data.txInfo.itu || '').replace(/\?/g, '');
-            city = (data.txInfo.city || '').replace(/\?/g, '');
-            station = (data.txInfo.tx || '').replace(/\?/g, '');
-        } catch (error) {
-            console.error("Error processing the message:", error);
-        }
-    }
-
-    async function setupWebSocket() {
-        if (!websocket || websocket.readyState === WebSocket.CLOSED) {
-            try {
-                websocket = await window.socketPromise;
-
-                websocket.addEventListener("open", () => {
-                    debugLog("WebSocket connected.");
-                });
-
-                websocket.addEventListener("message", handleWebSocketMessage);
-
-                websocket.addEventListener("error", (error) => {
-                    debugLog("WebSocket error:", error);
-                });
-
-                websocket.addEventListener("close", (event) => {
-                    debugLog("WebSocket connection closed, retrying in 5 seconds.");
-                    setTimeout(setupWebSocket, 5000);
-                });
-
-            } catch (error) {
-                debugLog("Error during WebSocket setup:", error);
-            }
-        }
-    }
-
-    // ───────────────────────────────────────────────────────────────
-    // New button: creation and assignment of event listeners
-    function createButton(buttonId) {
-      (function waitForFunction() {
-        const maxWaitTime = 10000;
-        let functionFound = false;
-
-        const observer = new MutationObserver((mutationsList, observer) => {
-          if (typeof addIconToPluginPanel === 'function') {
-            observer.disconnect();
-            // Create the button using the plugin panel
-            addIconToPluginPanel(buttonId, "Screenshot", "solid", "print", `Plugin Version: ${plugin_version}`);
-            functionFound = true;
-
-            const buttonObserver = new MutationObserver(() => {
-              const $pluginButton = $(`#${buttonId}`);
-              if ($pluginButton.length > 0) {
-                // Statt langer Druckdauer wird nun ein einfacher Klick verwendet:
-                $pluginButton.on('click', handleScreenshotRequest);
-                buttonObserver.disconnect();
-              }
-            });
-            buttonObserver.observe(document.body, { childList: true, subtree: true });
+      const filename = parts.filter(Boolean).join('_') + '.png';
+      fetch('http://screenshot.fmscan.com:4000/take-screenshot', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+              filename: filename,
+              pageURL: window.location.href,
+          }),
+          credentials: 'include'
+      }).then(response => response.json())
+        .then(data => {
+          console.log(data);
+          if (data.success) {
+              const link = document.createElement('a');
+              fetch(data.imageURL).then(response => response.blob()).then(blob => {
+                  const url = URL.createObjectURL(blob);
+                  link.href = url;
+                  link.download = filename;
+                  link.click();
+                  URL.revokeObjectURL(url);
+              });
+              return;
           }
+          if (data.errorCode === 'AUTH_TOKEN_REQUIRED') {
+              window.location.reload();
+          }
+        }).catch(error => {
+            console.error(error);
         });
+      return;
+  }
 
-        observer.observe(document.body, { childList: true, subtree: true });
+  async function handleWebSocketMessage(event) {
+      try {
+          const data = JSON.parse(event.data);
+          picode = (data.pi || '').replace(/\?/g, '');
+          freq = (data.freq || '').replace(/\?/g, '');
+          itu = (data.txInfo.itu || '').replace(/\?/g, '');
+          city = (data.txInfo.city || '').replace(/\?/g, '');
+          station = (data.txInfo.tx || '').replace(/\?/g, '');
+      } catch (error) {
+          console.error("Error processing the message:", error);
+      }
+  }
 
-        setTimeout(() => {
+  async function setupWebSocket() {
+      if (!websocket || websocket.readyState === WebSocket.CLOSED) {
+          try {
+              websocket = await window.socketPromise;
+
+              websocket.addEventListener("open", () => {
+                  debugLog("WebSocket connected.");
+              });
+
+              websocket.addEventListener("message", handleWebSocketMessage);
+
+              websocket.addEventListener("error", (error) => {
+                  debugLog("WebSocket error:", error);
+              });
+
+              websocket.addEventListener("close", (event) => {
+                  debugLog("WebSocket connection closed, retrying in 5 seconds.");
+                  setTimeout(setupWebSocket, 5000);
+              });
+
+          } catch (error) {
+              debugLog("Error during WebSocket setup:", error);
+          }
+      }
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // New button: creation and assignment of event listeners
+  function createButton(buttonId) {
+    (function waitForFunction() {
+      const maxWaitTime = 10000;
+      let functionFound = false;
+
+      const observer = new MutationObserver((mutationsList, observer) => {
+        if (typeof addIconToPluginPanel === 'function') {
           observer.disconnect();
-          if (!functionFound) {
-            console.error(`Function addIconToPluginPanel not found after ${maxWaitTime / 1000} seconds.`);
-          }
-        }, maxWaitTime);
-      })();
+          // Create the button using the plugin panel
+          addIconToPluginPanel(buttonId, "Screenshot", "solid", "print", `Plugin Version: ${plugin_version}`);
+          functionFound = true;
 
-      // Additional CSS adjustments for the new button
-      const aScreenshotCss = `
-        #${buttonId}:hover {
-          color: var(--color-5);
-          filter: brightness(120%);
+          const buttonObserver = new MutationObserver(() => {
+            const $pluginButton = $(`#${buttonId}`);
+            if ($pluginButton.length > 0) {
+              // Statt langer Druckdauer wird nun ein einfacher Klick verwendet:
+              $pluginButton.on('click', handleScreenshotRequest);
+              buttonObserver.disconnect();
+            }
+          });
+          buttonObserver.observe(document.body, { childList: true, subtree: true });
         }
-      `;
-      $("<style>")
-        .prop("type", "text/css")
-        .html(aScreenshotCss)
-        .appendTo("head");
-    }
+      });
 
-    // Create the button with the ID 'Screenshot'
-    createButton('Screenshot');
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      setTimeout(() => {
+        observer.disconnect();
+        if (!functionFound) {
+          console.error(`Function addIconToPluginPanel not found after ${maxWaitTime / 1000} seconds.`);
+        }
+      }, maxWaitTime);
+    })();
+
+    // Additional CSS adjustments for the new button
+    const aScreenshotCss = `
+      #${buttonId}:hover {
+        color: var(--color-5);
+        filter: brightness(120%);
+      }
+    `;
+    $("<style>")
+      .prop("type", "text/css")
+      .html(aScreenshotCss)
+      .appendTo("head");
+  }
+
+  // Create the button with the ID 'Screenshot'
+  createButton('Screenshot');
 })();
