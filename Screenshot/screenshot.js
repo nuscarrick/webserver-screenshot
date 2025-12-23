@@ -16,12 +16,20 @@
   let websocket;
   let picode = '', freq = '', itu = '', city = '', station = '';
 
+  // Custom console log function
+  let ConsoleDebug = false; 			// Activate/Deactivate console output
+  function debugLog(...messages) {
+    if (ConsoleDebug) {
+      console.log(...messages);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
       setupWebSocket(); // Set up the WebSocket connection
       
       $('head').append('<style>.ui-dialog .ui-dialog-titlebar { display: none !important; } .ui-dialog-content { display: flex; justify-content: center; align-items: center; }</style>');
 
-      $('body').append($('<div>').attr('title', 'Screenshot request').attr('id', 'screenshot-dialog').attr('style', 'display: none;').html('<div>Waiting for the screenshot. It will take about 30 seconds <span class = "fa fa-spinner fa-spin"></span></div>'));
+      $('body').append($('<div>').attr('title', t('plugin.screenshotPlugin.screenshotRequest')).attr('id', 'screenshot-dialog').attr('style', 'display: none;').html(`<div>${t('plugin.screenshotPlugin.waitingForTheScreenshot')} <span class = "fa fa-spinner fa-spin"></span></div>`));
   });
 
   function showDialog() {
@@ -73,7 +81,7 @@
                   link.download = filename;
                   link.click();
                   URL.revokeObjectURL(url);
-                  sendToast('success', 'Screenshot', `Screenshot saved as ${filename}`, false, false);
+                  sendToast('success', t('plugin.screenshot'), `${t('plugin.screenshotPlugin.screenshotSavedAs')} ${filename}`, false, false);
                   closeDialog();
               });
               return;
@@ -83,7 +91,7 @@
           }
         }).catch(error => {
             console.error(error);
-            sendToast('error', 'Screenshot', `Screenshot failed: ${error}`, false, false);
+            sendToast('error', t('plugin.screenshot'), `${t('plugin.screenshotPlugin.screenshotFailed')}: ${error}`, false, false);
             closeDialog();
         });
       return;
@@ -139,7 +147,7 @@
         if (typeof addIconToPluginPanel === 'function') {
           observer.disconnect();
           // Create the button using the plugin panel
-          addIconToPluginPanel(buttonId, "Screenshot", "solid", "print", `Plugin Version: ${plugin_version}`);
+          addIconToPluginPanel(buttonId, t('plugin.screenshot'), "solid", "print", `Plugin Version: ${plugin_version}`);
           functionFound = true;
 
           const buttonObserver = new MutationObserver(() => {
