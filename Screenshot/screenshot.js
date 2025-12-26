@@ -21,7 +21,7 @@
       
       $('head').append('<style>.ui-dialog .ui-dialog-titlebar { display: none !important; } .ui-dialog-content { display: flex; justify-content: center; align-items: center; }</style>');
 
-      $('body').append($('<div>').attr('title', 'Screenshot request').attr('id', 'screenshot-dialog').attr('style', 'display: none;').html('<div>Waiting for the screenshot. It will take about 30 seconds <span class = "fa fa-spinner fa-spin"></span></div>'));
+      $('body').append($('<div>').attr('title', 'Screenshot request').attr('id', 'screenshot-dialog').attr('style', 'display: none;').html('<div>Waiting for the screenshot <span class = "fa fa-spinner fa-spin"></span></div>'));
   });
 
   function showDialog() {
@@ -60,6 +60,7 @@
           body: JSON.stringify({
               filename: filename,
               pageURL: window.location.href,
+              waitTime: 5000,
           }),
           credentials: 'include'
       }).then(response => response.json())
