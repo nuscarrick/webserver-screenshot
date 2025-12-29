@@ -68,6 +68,7 @@
           body: JSON.stringify({
               filename: filename,
               pageURL: window.location.href,
+              waitTime: 5000,
           }),
           credentials: 'include'
       }).then(response => response.json())
