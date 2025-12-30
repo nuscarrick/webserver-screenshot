@@ -55,7 +55,12 @@
       const parts = [dateString];
       if (freq) parts.push(freq);
       if (picode) parts.push(picode);
-      if (station) parts.push(station);
+      if (station) {
+        parts.push(station);
+      } else if ($('#data-station-name').length > 0 && $('#data-station-name').text().trim() !== '') {
+        const stationName = $('#data-station-name').text().trim();
+        if (stationName) parts.push(stationName);
+      }
       // if (city) parts.push(city);
       // if (itu) parts.push(`[${itu}]`);
 
