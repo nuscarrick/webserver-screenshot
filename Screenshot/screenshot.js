@@ -49,14 +49,15 @@
   async function handleScreenshotRequest() {
       const date = new Date();
       const dateString = date.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-      const timeString = date.toTimeString().slice(0, 8).replace(/:/g, '');  // HHMMSS
+      // const timeString = date.toTimeString().slice(0, 8).replace(/:/g, '');  // HHMMSS
 
-      const parts = [dateString, timeString];
+      // const parts = [dateString, timeString];
+      const parts = [dateString];
       if (freq) parts.push(freq);
       if (picode) parts.push(picode);
       if (station) parts.push(station);
-      if (city) parts.push(city);
-      if (itu) parts.push(`[${itu}]`);
+      // if (city) parts.push(city);
+      // if (itu) parts.push(`[${itu}]`);
 
       const filename = parts.filter(Boolean).join('_') + '.png';
       showDialog();
